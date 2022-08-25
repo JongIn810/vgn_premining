@@ -1,0 +1,206 @@
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="utf-8">
+	<title>VGN Test</title>
+
+	<script src="js/jquery-1.12.3.js"></script> 
+    
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/caver-js/1.6.2/caver.min.js"></script>
+    
+	<script src="mint/config1.js?ver=1.0.3"></script>
+	<script src="mint/config2.js?ver=1.0.3"></script>
+		
+</head>
+
+<body>
+	<h1>VGN</h1>
+	<table>
+		
+		<tr>
+			<td>카이카스 지갑 연결 : </td>
+			<td><input type="button" value="CONNECT WALLET" onClick="connect();"/></td>
+		</tr>
+		
+		<tr>
+			<td>VOGONYANGS NFT 보유갯수 확인 : </td>
+			<td><input type="button" value="CHECK VGN Token" onClick="check_vgn();"/></td>
+		</tr>
+		
+		<tr>
+			<td colspan='2'>---------------------------------------------------------</td>
+		</tr>
+				
+		<tr>
+			<td>지갑 주소 : </td>
+			<td><span id="myWallet"></span></td>
+		</tr>
+		<tr>
+			<td>KLAY 잔액 :</td>
+			<td><span id="myKlay"></span></td>
+		</tr>
+		<tr>
+			<td>VGN 갯수 :</td>
+			<td><span id="myVGN">0</span></td>
+		</tr>		
+		
+		<tr>
+			<td colspan='2'>---------------------------------------------------------</td>
+		</tr>		
+		<!-- 		
+		<tr>
+			<td>트랜잭션 확인 : </td>
+			<td><input type="button" value="get_transaction" onclick="get_transaction_link()"/></td>
+		</tr>
+		<tr>
+			<td>지갑 토큰수량 확인 : </td>
+			<td><input type="button" value="get_token_balance" onclick="get_token_balance_link()" /></td>
+		</tr>
+		<tr>
+			<td>토큰 전송 : </td>
+			<td><input type="button" value="send_token" onclick="send_token_link()" /></td>
+		</tr>
+		<tr>
+			<td>토큰 홀딩상태 확인 : </td>
+			<td><input type="button" value="get_holder_address" onclick="get_holder_address_link()" /></td>
+		</tr>
+		<tr>
+			<td>토큰 수령이력 확인 : </td>
+			<td><input type="button" value="get_receive_history" onclick="get_receive_history_link()" /></td>
+		</tr>
+		<tr>
+			<td>홀딩상태 + 전송 : </td>
+			<td><input type="button" value="holder_send" onclick="holder_send_link()" /></td>
+		</tr>
+	
+		-->
+	</table>
+	
+	<br/>
+	<input type='submit' id='checkJson' value='OK'>
+	<div id='message'></div>
+</body>
+
+<script language='javascript'>
+
+	function get_transaction_link() {
+		window.location.href = './view/get_transaction.html';
+	}
+	function get_token_balance_link() {
+		window.location.href = './view/get_token_balance.html';
+	}
+	function send_token_link() {
+		window.location.href = './view/send_token.html';
+	}
+	function get_holder_address_link() {
+		window.location.href = './view/get_holder_address.html';
+	}
+	function get_receive_history_link() {
+		window.location.href = './view/get_receive_history.html';
+	}
+	function holder_send_link() {
+		window.location.href = './view/holder_send.html';
+	}
+</script>
+
+<script type="text/javascript">
+
+let account;
+let vgncnt;
+
+async function connect() {
+    const accounts = await klaytn.enable();
+    if (klaytn.networkVersion === 8217) {
+        console.log("메인넷");
+    } else if (klaytn.networkVersion === 1001) {
+        console.log("테스트넷");
+    } else {
+        alert("ERROR: 클레이튼 네트워크로 연결되지 않았습니다!");
+        return;
+    }
+    account = accounts[0];
+    caver.klay.getBalance(account)
+        .then(function (balance) {
+
+        	console.log("addr = " + account );
+	        	
+        	document.getElementById("myWallet").innerHTML = account
+	    	document.getElementById("myKlay").innerHTML = caver.utils.fromPeb(balance, "KLAY")
+	        });
+	  await check_vgn();
+	}
+
+async function check_vgn() {
+    const myContract = new caver.klay.Contract(ABI, CONTRACTADDRESS);
+	    
+    await myContract.methods.balanceOf(account).call()
+        .then(function (result) {
+            console.log(result);
+            vgncnt = result;
+            if(result > 0){
+            	
+            	alert("You are VOGONYANGS HOLDER!");
+            	
+            	document.getElementById("myVGN").innerHTML = vgncnt
+            		            	
+            } else {
+            	alert("You are not VOGONYANGS HOLDER!");
+            }
+
+        })
+        .catch(function (error) {
+            console.log(error);
+        });
+	    
+	}
+  
+  
+</script>
+
+<script>
+$(function() {
+    $('#checkJson').on('click', () => {
+    	
+    	$.ajax({
+            type:'post',
+            async:false, //false가 기본값임 - 비동기
+            url:'http://localhost:8080/vgnft/Home/HomeController',
+            dataType:'text',
+            data:{STEP:'VGN0000', account:account, vgncnt:vgncnt},
+            success: function(data, textStatus) {
+                if(data === 'usable') {
+                    $('#message').text('사용할 수 있는 ID입니다.')      
+                    $('#checkBtn').prop('disabled', true) // 사용할 수 있는 ID면 버튼을 비활성화 시킨다.
+                } else {
+                    $('#message').text('이미 사용 중인 아이디입니다.')
+                }
+            },
+            error:function (data, textStatus) {
+                console.log('error');
+            }
+        })    //ajax
+    	
+    	
+    	/*
+        const jsonStr = '{"member":[{"name":"김공","age":26,"nick":"kimball"},'
+        + '{"name":"이불","age":21,"nick":"FireLee"}]}'
+        console.log(jsonStr)
+        const jsonInfo = JSON.parse(jsonStr)
+
+        let output = '회원 정보<hr>'
+
+        for(const i in jsonInfo.member) {
+            output += '이름 : ' + jsonInfo.member[i].name + '<br>'
+            output += '나이 : ' + jsonInfo.member[i].age + '<br>'
+            output += '별명 : ' + jsonInfo.member[i].nick + '<hr>'
+        }
+
+        $('#output').html(output)
+        */
+    })
+})
+</script>
+
+</html>
